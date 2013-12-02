@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent" >
+ 
+    <PreferenceCategory android:title="Timezone settings" >
+        <ListPreference
+            android:key="prefTimezone"
+            android:summary="Set the preferred timezone"
+            android:title="Timezones" />
+    </PreferenceCategory>
+     
+    <PreferenceCategory android:title="Game settings" > 
+        <MultiSelectListPreference
+            android:key="prefGames"
+            android:entries="@array/games"
+            android:summary="Select the games you are interrested in"
+            android:entryValues="@array/games"
+            android:title="Game selection"
+            android:defaultValue="@array/games" />
+    </PreferenceCategory>
+ 
+</PreferenceScreen>

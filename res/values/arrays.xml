@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="games">
+        <item name="SC2">StarCraft 2</item>
+        <item name="BW">Brood War</item>
+        <item name="LOL">League of Legends</item>
+        <item name="DOTA2">Dota 2</item>
+        <item name="HEARTH">Hearthstone</item>
+        <item name="OTHER">Other</item>
+    </string-array>
+</resources>
