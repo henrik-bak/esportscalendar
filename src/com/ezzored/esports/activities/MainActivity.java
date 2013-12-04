@@ -12,6 +12,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.joda.time.DateTime;
+import org.joda.time.DateTimeComparator;
 import org.joda.time.DateTimeZone;
 import org.simpleframework.xml.Serializer;
 import org.simpleframework.xml.core.Persister;
@@ -25,10 +26,17 @@ import android.preference.PreferenceManager;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentTransaction;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.LinearLayout.LayoutParams;
+import android.widget.RelativeLayout;
+import android.widget.ScrollView;
+import android.widget.TextView;
 
 import com.ezzored.esports.dbutils.FeedEventsRepository;
 import com.ezzored.esports.dbutils.UserEventsRepository;
@@ -40,23 +48,25 @@ import com.roomorama.caldroid.CaldroidListener;
 
 @SuppressLint("SimpleDateFormat")
 public class MainActivity extends FragmentActivity {
-	
+
 	private static final String TAG = "ESPORTS";
-	
+
 	private CaldroidFragment caldroidFragment;
-	private CaldroidFragment dialogCaldroidFragment;
 	Map<String, Integer> gameMap = new HashMap<String, Integer>();
 	IFeedReader reader;
 	com.ezzored.esports.model.Calendar tl_calendar = null;
-	
+
 	private ArrayList<Event> eventList;
-	
+
 	private UserEventsRepository userEventRepo;
 	private FeedEventsRepository feedEventRepo;
-	
+
 	private String timezone;
 	private Set<String> selectedGames;
 
+	private LinearLayout eventDetails;
+
+	private View prevSelectedView;
 
 	private void setCustomResourceForDates() {
 		Calendar cal = Calendar.getInstance();
@@ -84,7 +94,7 @@ public class MainActivity extends FragmentActivity {
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
-		
+
 		gameMap.put("StarCraft 2", R.drawable.sc2_icon);
 		gameMap.put("League of Legends", R.drawable.lol_icon);
 		gameMap.put("Dota 2", R.drawable.dota_2_icon);
@@ -93,21 +103,15 @@ public class MainActivity extends FragmentActivity {
 
 		loadCalendar();
 		loadPref();
-		
+
 		userEventRepo = UserEventsRepository.getInstance(this);
 		feedEventRepo = FeedEventsRepository.getInstance(tl_calendar, timezone);
+		eventDetails = (LinearLayout) findViewById(R.id.scroll_layout);
 
-		// Setup caldroid fragment
-		// **** If you want normal CaldroidFragment, use below line ****
-		//caldroidFragment = new CaldroidFragment();
+		caldroidFragment = new CalendarCustomFragment();
 
-		// //////////////////////////////////////////////////////////////////////
-		// **** This is to show customized fragment. If you want customized
-		// version, uncomment below line ****
-		 caldroidFragment = new CalendarCustomFragment();
+		eventList = new ArrayList<Event>();
 
-		 eventList = new ArrayList<Event>();
-		 
 		// Setup arguments
 
 		// If Activity is created after rotation
@@ -123,13 +127,13 @@ public class MainActivity extends FragmentActivity {
 			args.putInt(CaldroidFragment.YEAR, cal.get(Calendar.YEAR));
 			args.putBoolean(CaldroidFragment.ENABLE_SWIPE, true);
 			args.putBoolean(CaldroidFragment.SIX_WEEKS_IN_CALENDAR, true);
-			
+
 			eventList.addAll(userEventRepo.getAll());
 			eventList.addAll(feedEventRepo.getAll());
-			
+
 			// Uncomment this to customize startDayOfWeek
-			 args.putInt(CaldroidFragment.START_DAY_OF_WEEK,
-			 CaldroidFragment.MONDAY); // Tuesday
+			args.putInt(CaldroidFragment.START_DAY_OF_WEEK,
+					CaldroidFragment.MONDAY); // Tuesday
 			caldroidFragment.setArguments(args);
 		}
 
@@ -145,8 +149,92 @@ public class MainActivity extends FragmentActivity {
 
 			@Override
 			public void onSelectDate(Date date, View view) {
-				//TODO: fill scrollview with event data
-				Log.d(TAG, feedEventRepo.getEventsForDate(new DateTime(date)).toString());
+				// TODO: fill scrollview with event data
+				Log.d(TAG, feedEventRepo.getEventsForDate(new DateTime(date))
+						.toString());
+
+				if (prevSelectedView != null) {
+					prevSelectedView.setBackgroundResource(R.drawable.cell_bg);
+				}
+
+				view.setBackgroundResource(R.drawable.red_border);
+
+				LayoutInflater inflater = LayoutInflater
+						.from(getApplicationContext());
+
+				ScrollView scroll = new ScrollView(getApplicationContext());
+
+				scroll.setBackgroundColor(getResources().getColor(
+						android.R.color.transparent));
+				scroll.setLayoutParams(new LayoutParams(
+						LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
+
+				LinearLayout scrollBaseLayout = new LinearLayout(
+						getApplicationContext());
+				scrollBaseLayout.setOrientation(LinearLayout.VERTICAL);
+
+				if (((LinearLayout) eventDetails).getChildCount() > 0) {
+					((LinearLayout) eventDetails).removeAllViews();
+				}
+
+				scroll.addView(scrollBaseLayout);
+				for (Event event : feedEventRepo.getAll()) {
+					DateTime selectedDate = new DateTime(date);
+					if (DateTimeComparator.getDateOnlyInstance().compare(
+							event.getEventDate(), selectedDate) == 0) {
+
+						RelativeLayout customRow = (RelativeLayout) inflater
+								.inflate(R.layout.event_view, null, false);
+
+						ImageView icon = (ImageView) customRow
+								.findViewById(R.id.icon);
+						TextView title = (TextView) customRow
+								.findViewById(R.id.title);
+						TextView desc = (TextView) customRow
+								.findViewById(R.id.desc);
+						TextView time = (TextView) customRow
+								.findViewById(R.id.time);
+
+						try {
+							icon.setImageResource(gameMap.get(event.getType()));
+						} catch (NullPointerException ex) {
+							icon.setImageResource(gameMap.get("Other"));
+						}
+
+						title.setText(event.getTitle());
+						if (event.getDescription() != null) {
+							String noHTMLString = replaceLinks(
+									event.getDescription()
+											.replaceAll("\\<.*?>", "")
+											.replaceAll("\\[.*?]", "")
+											.replaceAll(".png", ".png "))
+									.trim().replaceAll(" +", " ");
+
+							Integer length = noHTMLString.length();
+							if (length > 75) {
+								desc.setText(noHTMLString.substring(0, 75)
+										+ "...");
+							} else {
+								desc.setText(noHTMLString);
+							}
+						}
+						String minute = (event.getEventDate().getMinuteOfHour() < 10) ? "0"
+								+ event.getEventDate().getMinuteOfHour()
+								: "" + event.getEventDate().getMinuteOfHour();
+						String hour = (event.getEventDate().getHourOfDay() < 9) ? "0"
+								+ event.getEventDate().getHourOfDay()
+								: "" + event.getEventDate().getHourOfDay();
+
+						time.setText(hour + ":" + minute);
+
+						scrollBaseLayout.addView(customRow);
+
+					}
+				}
+				eventDetails.addView(scroll);
+
+				prevSelectedView = view;
+
 			}
 
 			@Override
@@ -161,13 +249,10 @@ public class MainActivity extends FragmentActivity {
 
 			@Override
 			public void onCaldroidViewCreated() {
-				if (caldroidFragment.getLeftArrowButton() != null) {
-
-				}
 			}
 
 		};
-		
+
 		caldroidFragment.setSelectedDates(new Date(), new Date());
 
 		// Setup Caldroid
@@ -185,13 +270,8 @@ public class MainActivity extends FragmentActivity {
 		if (caldroidFragment != null) {
 			caldroidFragment.saveStatesToKey(outState, "CALDROID_SAVED_STATE");
 		}
-
-		if (dialogCaldroidFragment != null) {
-			dialogCaldroidFragment.saveStatesToKey(outState,
-					"DIALOG_CALDROID_SAVED_STATE");
-		}
 	}
-	
+
 	@Override
 	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 		loadPref();
@@ -202,15 +282,14 @@ public class MainActivity extends FragmentActivity {
 				.getDefaultSharedPreferences(this);
 
 		timezone = mySharedPreferences.getString("prefTimezone", null);
-		
-		if (timezone==null || timezone.isEmpty()) {
+
+		if (timezone == null || timezone.isEmpty()) {
 			timezone = DateTimeZone.getDefault().getID();
 		}
 
-		selectedGames = mySharedPreferences.getStringSet(
-				"prefGames", null);
-		
-		if (selectedGames==null) {
+		selectedGames = mySharedPreferences.getStringSet("prefGames", null);
+
+		if (selectedGames == null) {
 			selectedGames = new HashSet<String>();
 			for (String game : getResources().getStringArray(R.array.games)) {
 				selectedGames.add(game);
@@ -231,7 +310,8 @@ public class MainActivity extends FragmentActivity {
 
 		Serializer ser = new Persister();
 		try {
-			tl_calendar = ser.read(com.ezzored.esports.model.Calendar.class, xml);
+			tl_calendar = ser.read(com.ezzored.esports.model.Calendar.class,
+					xml);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -276,14 +356,24 @@ public class MainActivity extends FragmentActivity {
 		case R.id.action_add:
 			addEvent();
 			return true;
+		case R.id.action_hide:
+			hideCalendar();
+			return true;
 		default:
 			return super.onOptionsItemSelected(item);
 		}
 	}
 
+	private void hideCalendar() {
+		if (caldroidFragment.getDateViewPager().getVisibility() == View.VISIBLE)
+			caldroidFragment.getDateViewPager().setVisibility(View.GONE);
+		else
+			caldroidFragment.getDateViewPager().setVisibility(View.VISIBLE);
+	}
+
 	private void addEvent() {
 		Intent i = new Intent(MainActivity.this, AddEventActivity.class);
-		startActivity(i);	
+		startActivity(i);
 	}
 
 	private void openSettings() {

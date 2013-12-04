@@ -6,6 +6,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import org.joda.time.DateTimeComparator;
+
 import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.Color;
@@ -117,14 +119,15 @@ public class CalendarCustomAdapter extends CaldroidGridAdapter {
 		}
 
 		tv1.setText("" + dateTime.getDay());
-		/*for (Event event : events) {
+		for (Event event : events) {
 			org.joda.time.DateTime convertedTime = new org.joda.time.DateTime(dateTime.getYear(), dateTime.getMonth(), dateTime.getDay(), dateTime.getHour(), dateTime.getMinute());
 			if (DateTimeComparator.getDateOnlyInstance().compare(event.getEventDate(), convertedTime) == 0) {
 				
 				tv2.setText("+");
+				break;
 			}
 		}
-*/
+
 		// Somehow after setBackgroundResource, the padding collapse.
 		// This is to recover the padding
 		cellView.setPadding(leftPadding, topPadding, rightPadding,
