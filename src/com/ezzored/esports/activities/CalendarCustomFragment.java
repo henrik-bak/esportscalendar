@@ -1,14 +1,9 @@
 package com.ezzored.esports.activities;
 
-import java.util.List;
-
-import com.ezzored.esports.model.Event;
 import com.roomorama.caldroid.CaldroidFragment;
 import com.roomorama.caldroid.CaldroidGridAdapter;
 
 public class CalendarCustomFragment extends CaldroidFragment {
-	
-	List<Event> events;
 	
 	public CalendarCustomFragment() {}
 	

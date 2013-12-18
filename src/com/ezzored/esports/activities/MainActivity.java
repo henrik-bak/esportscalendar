@@ -178,10 +178,22 @@ public class MainActivity extends FragmentActivity {
 				}
 
 				scroll.addView(scrollBaseLayout);
-				for (Event event : feedEventRepo.getAll()) {
-					DateTime selectedDate = new DateTime(date);
-					if (DateTimeComparator.getDateOnlyInstance().compare(
-							event.getEventDate(), selectedDate) == 0) {
+				
+				DateTime selectedDate = new DateTime(date);
+				
+				ArrayList<Event> eventsForDate = new ArrayList<Event>();
+				eventsForDate.addAll(feedEventRepo.getEventsForDate(selectedDate));
+				eventsForDate.addAll(userEventRepo.getAllForDate(selectedDate));
+				
+				ArrayList<Event> filteredDateEvents = new ArrayList<Event>();
+				
+				for (Event event : eventsForDate) {
+					if (selectedGames.contains(event.getType())) {
+						filteredDateEvents.add(event);
+					}
+				}
+				
+				for (Event event : filteredDateEvents) {
 
 						RelativeLayout customRow = (RelativeLayout) inflater
 								.inflate(R.layout.event_view, null, false);
@@ -230,7 +242,6 @@ public class MainActivity extends FragmentActivity {
 						scrollBaseLayout.addView(customRow);
 
 					}
-				}
 				eventDetails.addView(scroll);
 
 				prevSelectedView = view;

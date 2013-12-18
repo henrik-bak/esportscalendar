@@ -25,20 +25,18 @@ import com.roomorama.caldroid.CaldroidGridAdapter;
 
 public class CalendarCustomAdapter extends CaldroidGridAdapter {
 	List<Event> events;
-	private FeedEventsRepository feedEventsRepo;
-	private UserEventsRepository userEventsRepo;
 
 	public CalendarCustomAdapter(Context context, int month, int year,
 			HashMap<String, Object> caldroidData,
 			HashMap<String, Object> extraData) {
 		super(context, month, year, caldroidData, extraData);
-		feedEventsRepo = FeedEventsRepository.getInstance();
-		userEventsRepo = UserEventsRepository.getInstance(context);
 		events = new ArrayList<Event>();
-		events.addAll(feedEventsRepo.getAll());
-		events.addAll(userEventsRepo.getAll());
-		Log.d("ESPORTS", userEventsRepo.getAll().toString());
 	}
+	
+	public void setEvents(List<Event> events) {
+		events.addAll(events);
+	}
+	
 
 	@Override
 	public View getView(int position, View convertView, ViewGroup parent) {
@@ -119,6 +117,7 @@ public class CalendarCustomAdapter extends CaldroidGridAdapter {
 		}
 
 		tv1.setText("" + dateTime.getDay());
+		/*
 		for (Event event : events) {
 			org.joda.time.DateTime convertedTime = new org.joda.time.DateTime(dateTime.getYear(), dateTime.getMonth(), dateTime.getDay(), dateTime.getHour(), dateTime.getMinute());
 			if (DateTimeComparator.getDateOnlyInstance().compare(event.getEventDate(), convertedTime) == 0) {
@@ -127,7 +126,7 @@ public class CalendarCustomAdapter extends CaldroidGridAdapter {
 				break;
 			}
 		}
-
+*/
 		// Somehow after setBackgroundResource, the padding collapse.
 		// This is to recover the padding
 		cellView.setPadding(leftPadding, topPadding, rightPadding,
